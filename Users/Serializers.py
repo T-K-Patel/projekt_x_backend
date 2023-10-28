@@ -152,7 +152,7 @@ class ForgotPasswordSendSerializer(serializers.Serializer):
 
     def validate(self, data):
         user = get_object_or_404(User, username=data.get("entry"))
-        profile = get_object_or_404(Profile, entry=data.get("entry"))
+        profile = get_object_or_404(Profile, user=user)
         otp = "".join([str(random.randint(0, 9)) for _ in range(6)])
         profile.otp = otp
         profile.save()
@@ -185,8 +185,8 @@ class ForgotPasswordVerifySerializer(serializers.Serializer):
         feilds = ["entry", "token", "otp"]
 
     def validate(self, data):
-        profile = get_object_or_404(Profile, entry=data.get("entry"))
         user = get_object_or_404(User, username=data.get("entry"))
+        profile = get_object_or_404(Profile, user=user)
         if PasswordResetTokenGenerator().check_token(user, data.get("token")):
             if profile.otp == data.get("otp"):
                 profile.otp = ""
@@ -208,7 +208,7 @@ class ForgotPasswordVerifySerializer(serializers.Serializer):
 class QuerySerializer(serializers.ModelSerializer):
     class Meta:
         model = Query
-        fields = ["subject", "message", "isSolved"]
+        fields = ["user","subject", "message", "isSolved"]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

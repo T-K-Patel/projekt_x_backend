@@ -58,7 +58,7 @@ class Profile(Model):
         "Workshops.Workshop", related_name="participants", blank=True)
     points = IntegerField(default=0)
     registered_by = ForeignKey(
-        "Users.Profile", on_delete=SET_NULL,null=True)
+        "Users.Profile", on_delete=SET_NULL,null=True,blank=True)
     registered_on = DateTimeField(auto_now_add=True)
 
     class Meta:
