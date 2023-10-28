@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="d-flex flex-column align-items-center justify-content-center text-center" style="height: 100vh;">
+    {% if username %}
+      <h1 class="py-1">Hello, {{ username }}</h1>
+    {% else %}
+      <h1 class="py-1">Hello, User!</h1>
+    {% endif %}
+    <h1 class="py-1">Welcome to Projekt-X Backend</h1>
+    <button class="btn btn-primary admin-btn mt-3" onclick="gotoadmin()">Admin Site</button>
+    {% if profile %}
+      <center>
+        <p>{{ profile.entry }}</p>
+        {% block num2 %}
+
+        {% endblock %}
+        {% block homenew %}
+
+        {% endblock %}
+        <img src="/{{ profile.profile_photo }}" width="150px" height="150px" alt="" />
+      </center>
+    {% endif %}
+  </div>
+{% endblock %}
+{% block scripts %}
+  <script>
+    function gotoadmin() {
+      window.location = 'admin/'
+    }
+    function redirect(path) {
+      window.location = path
+    }
+  </script>
+{% endblock %}

@@ -1,0 +1,11 @@
+db.sqlite3
+
+.vscode/
+venv/
+.DS_Store
+.env
+dump.rdb
+__pycache__/
+media/
+test.*
+list*.csv

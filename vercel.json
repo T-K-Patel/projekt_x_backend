@@ -1,0 +1,15 @@
+{
+    "builds": [
+      {
+        "src": "projekt_x_backend/wsgi.py",
+        "use": "@vercel/python",
+        "config":{"runtime":"python3"}
+      }
+    ],
+    "routes": [
+      {
+        "src": "/(.*)",
+        "dest": "projekt_x_backend/wsgi.py"
+      }
+    ]
+}
