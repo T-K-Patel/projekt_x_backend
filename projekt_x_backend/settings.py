@@ -12,7 +12,7 @@ DEBUG = False
 
 # ALLOWED_HOSTS = ["192.168.50.123", "localhost",
 #                  "3w7s6tsf-8000.inc1.devtunnels.ms", "127.0.0.1", "10.184.19.235"]
-ALLOWED_HOSTS = ["localhost", "127.0.0.1","now.sh", ".vercel.app"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "now.sh", ".vercel.app"]
 
 
 INSTALLED_APPS = [
@@ -123,9 +123,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 
 if DEBUG:
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = os.environ["EMAIL_BACKEND"]
@@ -135,11 +135,11 @@ else:
     EMAIL_HOST_USER = os.environ["EMAIL_HOST_USER"]
     EMAIL_HOST_PASSWORD = os.environ["EMAIL_HOST_PASSWORD"]
 
-    # DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    # AWS_ACCESS_KEY_ID = os.environ["AWS_ACCESS_KEY_ID"]
-    # AWS_SECRET_ACCESS_KEY = os.environ["AWS_SECRET_ACCESS_KEY"]
-    # AWS_STORAGE_BUCKET_NAME = os.environ["AWS_STORAGE_BUCKET_NAME"]
-    # AWS_S3_CUSTOM_DOMAIN = 'us-002.s3.synologyc2.net'
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    AWS_ACCESS_KEY_ID = os.environ["AWS_ACCESS_KEY_ID"]
+    AWS_SECRET_ACCESS_KEY = os.environ["AWS_SECRET_ACCESS_KEY"]
+    AWS_STORAGE_BUCKET_NAME = os.environ["AWS_STORAGE_BUCKET_NAME"]
+    AWS_S3_CUSTOM_DOMAIN = 'us-002.s3.synologyc2.net'
     # AWS_QUERYSTRING_AUTH = True
     # AWS_S3_SIGNATURE_VERSION = 's3v4'
 
@@ -155,7 +155,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'staticfiles')]
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles_build",'static')
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles_build", 'static')
 MEDIA_URL = 'media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
