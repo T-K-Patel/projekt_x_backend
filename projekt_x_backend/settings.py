@@ -135,12 +135,12 @@ else:
     EMAIL_HOST_PASSWORD = os.environ["EMAIL_HOST_PASSWORD"]
 
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
     AWS_ACCESS_KEY_ID = os.environ["AWS_ACCESS_KEY_ID"]
     AWS_SECRET_ACCESS_KEY = os.environ["AWS_SECRET_ACCESS_KEY"]
     AWS_STORAGE_BUCKET_NAME = os.environ["AWS_STORAGE_BUCKET_NAME"]
-    # AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
-    AWS_S3_CUSTOM_DOMAIN = 'https://us-002.s3.synologyc2.net'
+    AWS_S3_CUSTOM_DOMAIN = 'us-002.s3.synologyc2.net'
+    AWS_QUERYSTRING_AUTH = True
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
 
 
 LANGUAGE_CODE = 'en-us'

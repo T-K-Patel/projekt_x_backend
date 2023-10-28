@@ -9,3 +9,4 @@ __pycache__/
 media/
 test.*
 list*.csv
+migrations/
