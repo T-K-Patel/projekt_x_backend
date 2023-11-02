@@ -183,31 +183,26 @@ class UpdateProfilePhoto(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
-        print("1 request received.")
         user = get_object_or_404(Profile, user=request.user)
         try:
             file = f"images/profile/{user.user.username}-{str(uuid.uuid4())}.{request.data.get('profile_photo').name.split('.')[1]}"
         except:
             file = f"images/profile/{user.user.username}-{str(uuid.uuid4())}.jpg"
-        print("2 request received.")
 
         serializer = ProfilePhotoSerializer(data=request.data)
 
         if serializer.is_valid():
             profile_photo = serializer.validated_data['profile_photo']
-            print("3 request received.")
 
             try:
                 to_delete = None
                 if not user.profile_photo == "images/profile/default.jpg":
                     to_delete = user.profile_photo
                 upload_profile(profile_photo, file, to_delete)
-                print("4 request received.")
                 user.profile_photo = file
                 user.save()
             except:
                 return Response({"detail": "Error uploading profile photo"}, status=400)
-            print("5 request received.")
 
             return Response('Profile photo updated successfully.')
         else:
