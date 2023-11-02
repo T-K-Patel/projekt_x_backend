@@ -12,6 +12,7 @@ def upload_path(instance, filename):
     filename = f'{uuid.uuid4()}.{ext}'
     return f'Users/Profile/profile_photo/{filename}'
 
+
 def get_superadmim():
     return User.objects.filter(is_superuser=True).first()
 
@@ -38,6 +39,9 @@ def validate_image_size(image):
     return image
 
 
+default_profile = "images/profile/default.jpg"
+
+
 class Profile(Model):
     user = OneToOneField(User, on_delete=CASCADE)
     name = CharField(max_length=50)
@@ -46,8 +50,9 @@ class Profile(Model):
     hostel = ForeignKey(Hostel, on_delete=CASCADE)
     room = CharField(max_length=8)
     state = CharField(max_length=25)
-    profile_photo = ImageField(upload_to=upload_path, validators=[
-                               validate_image_size], default='Users/Profile/profile_photo/default.jpg')
+    profile_photo = CharField(max_length=100, default=default_profile)
+    # profile_photo = ImageField(upload_to=upload_path, validators=[
+    #    validate_image_size], default='Users/Profile/profile_photo/default.jpg')
     isRep = BooleanField(default=False)
     isSecy = BooleanField(default=False)
     isVerified = BooleanField(default=False)
@@ -58,7 +63,7 @@ class Profile(Model):
         "Workshops.Workshop", related_name="participants", blank=True)
     points = IntegerField(default=0)
     registered_by = ForeignKey(
-        "Users.Profile", on_delete=SET_NULL,null=True,blank=True)
+        "Users.Profile", on_delete=SET_NULL, null=True, blank=True)
     registered_on = DateTimeField(auto_now_add=True)
 
     class Meta:

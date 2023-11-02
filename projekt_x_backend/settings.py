@@ -87,25 +87,25 @@ CORS_ALLOW_HEADERS = [
 
 WSGI_APPLICATION = 'projekt_x_backend.wsgi.application'
 
-if DEBUG:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
+# if DEBUG:
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.sqlite3',
+#             'NAME': BASE_DIR / 'db.sqlite3',
+#         }
+#     }
+# else:
+DATABASES = {
+    'default': {
+        'ENGINE': os.environ["DATABASE_ENGINE"],
+        'NAME': os.environ["DATABASE_NAME"],
+        'USER': os.environ["DATABASE_USER"],
+        'PASSWORD': os.environ["DATABASE_PASSWORD"],
+        'HOST': os.environ["DATABASE_HOST"],
+        'PORT': os.environ["DATABASE_PORT"],
+        'OPTIONS': {'sslmode': 'require'},
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': os.environ["DATABASE_ENGINE"],
-            'NAME': os.environ["DATABASE_NAME"],
-            'USER': os.environ["DATABASE_USER"],
-            'PASSWORD': os.environ["DATABASE_PASSWORD"],
-            'HOST': os.environ["DATABASE_HOST"],
-            'PORT': os.environ["DATABASE_PORT"],
-            'OPTIONS': {'sslmode': 'require'},
-        }
-    }
+}
 
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -124,8 +124,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 if DEBUG:
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     EMAIL_BACKEND = os.environ["EMAIL_BACKEND"]
@@ -134,15 +134,6 @@ else:
     EMAIL_USE_TLS = True
     EMAIL_HOST_USER = os.environ["EMAIL_HOST_USER"]
     EMAIL_HOST_PASSWORD = os.environ["EMAIL_HOST_PASSWORD"]
-
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    AWS_ACCESS_KEY_ID = os.environ["AWS_ACCESS_KEY_ID"]
-    AWS_SECRET_ACCESS_KEY = os.environ["AWS_SECRET_ACCESS_KEY"]
-    AWS_STORAGE_BUCKET_NAME = os.environ["AWS_STORAGE_BUCKET_NAME"]
-    AWS_S3_CUSTOM_DOMAIN = 'us-002.s3.synologyc2.net'
-    # AWS_QUERYSTRING_AUTH = True
-    # AWS_S3_SIGNATURE_VERSION = 's3v4'
-
 
 LANGUAGE_CODE = 'en-us'
 

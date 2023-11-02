@@ -40,7 +40,6 @@ class IsCaptchaVerified(BasePermission):
         response = requests.get(f"https://www.google.com/recaptcha/api/siteverify?secret={CAPTCHA_KEY}&response={captcha_response}")
         if response.status_code == 200:
             response = response.json()
-            print(response)
             if response['success']:
                 return True
         return False

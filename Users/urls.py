@@ -11,6 +11,7 @@ urlpatterns = [
 	path('token/refresh/', views.TokenRefreshView.as_view(), name="Refresh"),
 	path('profile/', views.ProfileView.as_view(), name="Profile"),
 	path('resetpassword/', views.ResetPasswordView.as_view(), name="Reset"),
+	path('verify/', views.RegisterVerifyView.as_view(), name="Reset"),
 	path('update_profile_photo/', views.UpdateProfilePhoto.as_view(), name="update_profile_photo"),
 	path('query/', views.QueryView.as_view(), name="Query"),
 	path('leaderboard/', views.LeaderboardView.as_view(), name="Leaderboard"),

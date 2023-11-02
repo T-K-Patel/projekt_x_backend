@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 # from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView as TRV
+from Users.tasks import upload_profile
 # from rest_framework_simplejwt.exceptions import TokenError
 from Workshops.models import Workshop
 from .Serializers import *
@@ -19,11 +20,11 @@ from projekt_x_backend import settings
 # Create your views here.
 
 
-def send_email(entry, password, email="johnny.x.mia@gmail.com"):
+def send_email(entry, otp, email="johnny.x.mia@gmail.com"):
     subject = 'Registration Successful.'
-    message = 'Dear User, Your registration on Projekt-X was successful.\n\nHere are the profile credentials.\n\nEntry Number: ' + \
-              entry + "\nPassword: " + password + \
-        "\n\nVisit site to verify your profile.\n\nNote: This is temporary password.\nYou must change your Password."
+    message = 'Dear User,\n     Your registration on Projekt-X was successful.\n\nHere are the profile credentials.\n\nUsername: ' + \
+              entry + "\nOtp: " + otp + \
+        "\n\nVerify your profile with otp to login.\n\nRegards,\nProjekt-X Team."
     sender_email = 'tk.web.mail.madana@gmail.com'
     recipient_list = [email]
     email = EmailMessage(subject, message, sender_email, recipient_list)
@@ -74,7 +75,7 @@ class TokenRefreshView(TRV):
 
 
 class RegisterView(APIView):
-    permission_classes = [IsAuthenticated, IsSuperuser | IsAdminUser]
+    permission_classes = [IsCaptchaVerified]
 
     def post(self, request):
         data = request.data
@@ -82,7 +83,7 @@ class RegisterView(APIView):
         email = data.get("email")
 
         if not validate_entry(entry):
-            return Response({"entry": ["Enter a valid entry number."]}, status=400)
+            return Response({"entry": ["Enter a valid Username."]}, status=400)
 
         if not email:
             email = (entry[4:7]+entry[2:4]+entry[7:]+"@iitd.ac.in")
@@ -92,42 +93,54 @@ class RegisterView(APIView):
             data["entry"] = entry
 
         data["email"] = email.lower()
-        data["registered_by"] = Profile.objects.get(user=request.user).pk
-        hostel = Hostel.objects.filter(name=data.get("hostel")).first()
+        data["room"] = "".join([random.choice(
+            "qwertyuiopasdfghjklzxcvbnm1234567890ASDFGHJKLQWERTYUIOPZXCVBNM") for _ in range(8)])
+
+        hostel = Hostel.objects.filter(name="Nilgiri").first()
         if hostel:
             data["hostel"] = hostel.pk
-        elif data.get("hostel"):
-            return Response({"hostel": ["Enter a valid hostel name."]}, status=400)
+        # elif data.get("hostel"):
+        #     return Response({"hostel": ["Enter a valid hostel name."]}, status=400)
 
         staff = False
         if data.get('isSecy') or data.get('isRep'):
             staff = True
         if not data.get("password"):
-            return Response({"detail": "Password is required"})
+            return Response({"detail": "Password is required"}, status=400)
         if len(data.get("password")) < 8:
-            return Response({"detail": "Password must be atleast 8 characters long."})
+            return Response({"detail": "Password must be atleast 8 characters long."}, status=400)
         if len(data.get("password")) > 16:
-            return Response({"detail": "Password must not be more than 16 characters long."})
+            return Response({"detail": "Password must not be more than 16 characters long."}, status=400)
 
         password = data.get("password")
 
         if User.objects.filter(username=entry).exists():
-            return Response({"detail": "User alresdy Registered"})
+            return Response({"detail": "User alresdy Registered"}, status=400)
 
         user = User.objects.create_user(
             entry, email, password, is_staff=staff)
 
         data['user'] = user.pk
         serializer = RegisterSerializer(data=data)
-        print(data)
         if serializer.is_valid():
             serializer.save()
+            token = PasswordResetTokenGenerator().make_token(user)
+            send_email(entry, serializer.validated_data["otp"], data["email"])
+            return Response({"entry": entry, "token": token})
         else:
             user.delete()
-            return Response(serializer.errors, status=400)
-        token = PasswordResetTokenGenerator().make_token(user)
-        send_email(entry, password)
-        return Response({"entry": entry, "token": token})
+            return Response({"detail": serializer.errors}, status=400)
+
+
+class RegisterVerifyView(APIView):
+    def post(self, request):
+        data = request.data
+        print(data)
+        if not (data["entry"] and data["token"]):
+            return Response({"detail": "Invalid data"}, status=400)
+        serializer = ForgotPasswordVerifySerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response("Profile verification successful")
 
 
 class LoginView(APIView):
@@ -161,9 +174,6 @@ class ProfileView(APIView):
         serializer = ProfileSerializer(
             user, context={'host_url': request.build_absolute_uri('/')})
         data = serializer.data
-        # for i in range(len(data["attended_events"])):
-        #     data["attended_events"][i]["time"] = getTime(
-        #         data["attended_events"][i]["time"])
 
         return Response(data)
 
@@ -173,16 +183,33 @@ class UpdateProfilePhoto(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
+        print("1 request received.")
         user = get_object_or_404(Profile, user=request.user)
+        try:
+            file = f"images/profile/{user.user.username}-{str(uuid.uuid4())}.{request.data.get('profile_photo').name.split('.')[1]}"
+        except:
+            file = f"images/profile/{user.user.username}-{str(uuid.uuid4())}.jpg"
+        print("2 request received.")
 
         serializer = ProfilePhotoSerializer(data=request.data)
 
         if serializer.is_valid():
             profile_photo = serializer.validated_data['profile_photo']
-            user.profile_photo = profile_photo
-            user.save()
+            print("3 request received.")
 
-            return Response('Profile photo updated successfully')
+            try:
+                to_delete = None
+                if not user.profile_photo == "images/profile/default.jpg":
+                    to_delete = user.profile_photo
+                upload_profile(profile_photo, file, to_delete)
+                print("4 request received.")
+                user.profile_photo = file
+                user.save()
+            except:
+                return Response({"detail": "Error uploading profile photo"}, status=400)
+            print("5 request received.")
+
+            return Response('Profile photo updated successfully.')
         else:
             return Response(serializer.errors, status=400)
 
@@ -291,7 +318,7 @@ class ResetPasswordView(APIView):
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = User.objects.get(username = request.user.username)
+        user = User.objects.get(username=request.user.username)
         print(serializer.validated_data.get("password"))
         user.set_password(serializer.validated_data.get("password"))
         user.save()
