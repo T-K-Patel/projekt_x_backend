@@ -10,3 +10,4 @@ media/
 test.*
 list*.csv
 migrations/
+*.csv
