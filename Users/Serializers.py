@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 from django.utils.translation import gettext_lazy as GTL
 import random
 
@@ -34,14 +34,15 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["username", "dob", "attended_events", "name", "email",
+        fields = ["username", "dob", "name", "email",
                   "mobile", "state", "profile_photo"]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data["profile_photo"] = "https://storage.googleapis.com/projekt-x-402611.appspot.com/" + \
-            data.get("profile_photo")
-        data["dob"] = getTime(data["dob"])
+        if data.get("dob"):
+            data["dob"] = getTime(data.get("dob"))
+        else:
+            data["dob"] = None
         return data
 
 
@@ -142,8 +143,8 @@ class ForgotPasswordVerifySerializer(serializers.Serializer):
                     "access": str(refresh.access_token)
                 }
                 return data
-            raise serializers.ValidationError({"detail": "Invalid otp"})
-        raise serializers.ValidationError({"detail": "Invalid token"})
+            raise serializers.ValidationError({"detail": "Invalid otp"},code=400)
+        raise serializers.ValidationError({"detail": "Invalid token"},code=400)
 
 
 class QuerySerializer(serializers.ModelSerializer):

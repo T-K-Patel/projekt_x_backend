@@ -47,7 +47,7 @@ STATE_CHOICES = [
     ("West Bengal", "West Bengal"),
     ("Andaman and Nicobar Islands", "Andaman and Nicobar Islands"),
     ("Chandigarh", "Chandigarh"),
-    ("Dadra and Nagar Haveli and", "Dadra and Nagar Haveli and"),
+    ("Dadra and Nagar Haveli", "Dadra and Nagar Haveli"),
     ("Daman & Diu", "Daman & Diu"),
     ("Delhi", "Delhi"),
     ("Jammu & Kashmir", "Jammu & Kashmir"),

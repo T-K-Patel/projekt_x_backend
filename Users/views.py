@@ -75,7 +75,7 @@ class TokenRefreshView(TRV):
 
 
 class RegisterView(APIView):
-    # permission_classes = [IsCaptchaVerified]
+    permission_classes = [IsCaptchaVerified]
 
     def post(self, request):
         data = request.data
@@ -105,7 +105,7 @@ class RegisterView(APIView):
                     return Response({"detail": "Wait for 10 minutes before retrying."}, status=400)
                 user.delete()
             else:
-                return Response({"detail": "User with given username, email or mobile already exists."})
+                return Response({"detail": "User with given username, email or mobile already exists."},status=400)
 
         serializer = RegisterSerializer(data=data)
         if serializer.is_valid():
@@ -158,9 +158,9 @@ class UpdateProfilePhoto(APIView):
     def post(self, request):
         user = get_object_or_404(User, username=request.user.username)
         try:
-            file = f"images/profile/{user.user.username}-{str(uuid.uuid4())}.{request.data.get('profile_photo').name.split('.')[1]}"
+            file = f"images/profile/{user.username.lower()}-{str(uuid.uuid4())}.{request.data.get('profile_photo').name.split('.')[-1]}"
         except:
-            file = f"images/profile/{user.user.username}-{str(uuid.uuid4())}.jpg"
+            file = f"images/profile/{user.username.lower()}-{str(uuid.uuid4())}.jpg"
 
         serializer = ProfilePhotoSerializer(data=request.data)
 
@@ -168,10 +168,14 @@ class UpdateProfilePhoto(APIView):
             profile_photo = serializer.validated_data['profile_photo']
             try:
                 to_delete = None
-                if not user.profile_photo == "images/profile/default.jpg":
-                    to_delete = user.profile_photo
-                file = upload_profile(profile_photo, file, to_delete)
-                user.profile_photo = file
+                if not user.profile_photo.endswith("images/profile/default.jpg"):
+                    to_delete = "images" + \
+                        user.profile_photo.split("images")[1]
+                print("URL before upload", file)
+                print("Profile before upload", profile_photo)
+                url = upload_profile(profile_photo, file, to_delete)
+                print("URL after upload", url)
+                user.profile_photo = url
                 user.save()
             except:
                 return Response({"detail": "Error uploading profile photo"}, status=400)
@@ -200,11 +204,11 @@ class ForgotPasswordSendView(APIView):
         enc_data = encrypt(json.dumps(data))
         user.otp = otp
         user.save()
-        
+
         s = pyshorteners.Shortener()
         original_url = f"{request.build_absolute_uri('/')}users/reset_password/{enc_data}"
         short_url = s.tinyurl.short(original_url)
-        
+
         context = {'username': user.name,
                    "url": short_url}
 
