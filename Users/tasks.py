@@ -16,6 +16,7 @@ bucket = storage.bucket()
 
 def upload_profile(profile_photo, filename, to_delete=None):
     blob = bucket.blob(filename)
+    blob.content_type = "image/" + filename.split(".")[-1]
     blob.upload_from_file(profile_photo)
     blob.make_public()
     if to_delete:
