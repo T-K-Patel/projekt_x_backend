@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib import auth
 
@@ -34,3 +35,22 @@ def x_login(request):
         else:
             return render(request, 'HTML/login.html', {'error': 'Invalid Credentials'})
     return render(request, 'HTML/login.html')
+
+
+def page_not_found(request, exception):
+    return HttpResponse("<!DOCTYPE html>"
+                        "<html lang='en'>"
+
+                        "<head>"
+                        "<meta charset='UTF-8' />"
+                        "<meta name='viewport' content='width=device-width, initial-scale=1.0' />"
+                        "<title>Error 404</title>"
+                        "</head>"
+                        "<body>"
+                        "<center>"
+                        "<h1>Error 404 (Page not found)</h1>"
+                        "<p>The requested resource was not found on this server.</p>"
+                        "<a href='/'><button style='padding:5px; background-color:lightgrey;'>Go to Home</button></a>"
+                        "</center>"
+                        "</body>"
+                        "</html>")

@@ -21,6 +21,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from projekt_x_backend import views
 
+handler404 = 'projekt_x_backend.views.page_not_found'
+
 urlpatterns = [
     path('', views.Home,name="Home"),
     # path('workshop/', views.workshop),
