@@ -8,19 +8,13 @@
       <h1 class="py-1">Hello, User!</h1>
     {% endif %}
     <h1 class="py-1">Welcome to Projekt-X Backend</h1>
-    <button class="btn btn-primary admin-btn mt-3" onclick="gotoadmin()">Admin Site</button>
     {% if profile %}
       <center>
-        <p>{{ profile.entry }}</p>
-        {% block num2 %}
-
-        {% endblock %}
-        {% block homenew %}
-
-        {% endblock %}
-        <img src="/{{ profile.profile_photo }}" width="150px" height="150px" alt="" />
+        <h1>{{ profile.name }}</h1>
+        <img src="{{ profile.profile_photo }}" width="150px" height="150px" alt="" />
       </center>
     {% endif %}
+    <button class="btn btn-primary admin-btn mt-3" onclick="gotoadmin()">Admin Site</button>
   </div>
 {% endblock %}
 {% block scripts %}

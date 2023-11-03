@@ -1,33 +1,16 @@
-# import pyrebase
-
-import uuid
+# import pyrebimport firebase_admin
 import firebase_admin
-from firebase_admin import auth, credentials, storage
-import os
-from dotenv import load_dotenv
+from firebase_admin import credentials, storage
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from projekt_x_backend.settings import FIREBASE_CONFIG
 
-load_dotenv()
 
-firebase_config = {
-    "type": os.environ.get("FIREBASE_TYPE"),
-    "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
-    "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
-    "private_key": os.environ.get("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
-    "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
-    "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
-    "auth_uri": os.environ.get("FIREBASE_AUTH_URI"),
-    "token_uri": os.environ.get("FIREBASE_TOKEN_URI"),
-    "auth_provider_x509_cert_url": os.environ.get("FIREBASE_AUTH_PROVIDER_X509_CERT_URL"),
-    "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL"),
-    "universe_domain": "googleapis.com"
-}
-
-cred = credentials.Certificate(firebase_config)
-
+cred = credentials.Certificate(FIREBASE_CONFIG)
 firebase_admin.initialize_app(cred, {
     'storageBucket': 'projekt-x-402611.appspot.com'
 })
-
 bucket = storage.bucket()
 
 
@@ -41,3 +24,32 @@ def upload_profile(profile_photo, filename, to_delete=None):
             blob.delete()
         except:
             print("Delete Error for " + to_delete)
+    return blob.public_url
+
+
+def send_reset_email(context, email="johnny.x.mia@gmail.com"):
+    html_content = render_to_string(
+        'Mailer/reset_password_mail_template.html', context=context)
+    text_content = strip_tags(html_content)
+    return send_mail(
+        subject="Reset Password link for Projekt-X Account",
+        from_email="Projekt-X Team <tk.web.mail.madana@gmail.com>",
+        message=text_content,
+        recipient_list=[email],
+        html_message=html_content,
+        fail_silently=True
+    )
+
+
+def send_reg_email(context, email="johnny.x.mia@gmail.com"):
+    html_content = render_to_string(
+        'Mailer/registration_success.html', context=context)
+    text_content = strip_tags(html_content)
+    return send_mail(
+        subject="Registration Successful on Projekt-X",
+        from_email="Projekt-X Team <tk.web.mail.madana@gmail.com>",
+        message=text_content,
+        recipient_list=[email],
+        html_message=html_content,
+        fail_silently=True
+    )

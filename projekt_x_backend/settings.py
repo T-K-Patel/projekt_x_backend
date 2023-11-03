@@ -9,9 +9,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ['SECRET_KEY']
 
 DEBUG = False
-
-# ALLOWED_HOSTS = ["192.168.50.123", "localhost",
-#                  "3w7s6tsf-8000.inc1.devtunnels.ms", "127.0.0.1", "10.184.19.235"]
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "now.sh", ".vercel.app"]
 
 
@@ -26,12 +23,12 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-    'storages',
     # Custom Apps
     'Users',
-    'Workshops',
+    # 'Workshops',
     'Database',
 ]
+AUTH_USER_MODEL = "Users.User"
 
 
 MIDDLEWARE = [
@@ -87,25 +84,25 @@ CORS_ALLOW_HEADERS = [
 
 WSGI_APPLICATION = 'projekt_x_backend.wsgi.application'
 
-# if DEBUG:
-#     DATABASES = {
-#         'default': {
-#             'ENGINE': 'django.db.backends.sqlite3',
-#             'NAME': BASE_DIR / 'db.sqlite3',
-#         }
-#     }
-# else:
-DATABASES = {
-    'default': {
-        'ENGINE': os.environ["DATABASE_ENGINE"],
-        'NAME': os.environ["DATABASE_NAME"],
-        'USER': os.environ["DATABASE_USER"],
-        'PASSWORD': os.environ["DATABASE_PASSWORD"],
-        'HOST': os.environ["DATABASE_HOST"],
-        'PORT': os.environ["DATABASE_PORT"],
-        'OPTIONS': {'sslmode': 'require'},
+if DEBUG:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': os.environ["DATABASE_ENGINE"],
+            'NAME': os.environ["DATABASE_NAME"],
+            'USER': os.environ["DATABASE_USER"],
+            'PASSWORD': os.environ["DATABASE_PASSWORD"],
+            'HOST': os.environ["DATABASE_HOST"],
+            'PORT': os.environ["DATABASE_PORT"],
+            'OPTIONS': {'sslmode': 'require'},
+        }
+    }
 
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -125,6 +122,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
@@ -151,3 +149,23 @@ MEDIA_URL = 'media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+ENCRYPT_KEY = os.environ["ENCRYPT_KEY"]
+
+FIREBASE_CONFIG = {
+    "type": os.environ.get("FIREBASE_TYPE"),
+    "project_id": os.environ.get("FIREBASE_PROJECT_ID"),
+    "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID"),
+    "private_key": os.environ.get("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"),
+    "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL"),
+    "client_id": os.environ.get("FIREBASE_CLIENT_ID"),
+    "auth_uri": os.environ.get("FIREBASE_AUTH_URI"),
+    "token_uri": os.environ.get("FIREBASE_TOKEN_URI"),
+    "auth_provider_x509_cert_url": os.environ.get("FIREBASE_AUTH_PROVIDER_X509_CERT_URL"),
+    "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_X509_CERT_URL"),
+    "universe_domain": "googleapis.com"
+}
+
+CSRF_FAILURE_VIEW = 'Users.views.csrf_failure_view'
+
+ERROR_404_TEMPLATE_NAME = 'Errors/404.html'

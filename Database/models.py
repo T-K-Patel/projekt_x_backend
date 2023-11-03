@@ -4,7 +4,6 @@ from django.db.models import *
 import uuid
 
 import Users.models
-import Workshops
 
 HOSTEL_CHOICES = [
     ("Day Scholar", "None"),
@@ -44,14 +43,8 @@ def upload_path(instance, filename):
 class Club(Model):
     name = CharField(max_length=50, unique=True)
     board = CharField(max_length=50, choices=BOARDS, default="BRCA")
-    logo = ImageField(upload_to=upload_path,
+    logo = CharField(max_length=500,
                       default='Database/Club/logo/default.jpg')
-
-    def completed_workshops(self):
-        return Workshops.models.Workshop.objects.filter(Q(club=self) & Q(time__lt=datetime.now())).count()
-
-    def upcoming_workshops(self):
-        return Workshops.models.Workshop.objects.filter(Q(club=self) & Q(time__gte=datetime.now())).count()
 
     def __str__(self):
         return self.name

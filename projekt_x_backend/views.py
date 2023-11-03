@@ -1,33 +1,18 @@
 from django.shortcuts import render, redirect
 from django.contrib import auth
-from Users.models import Profile
-from Workshops.models import Workshop
-from django.core.files.storage import default_storage
+
 
 def Home(request):
-    if request.user.username:
-        profile = Profile.objects.filter(
-            user__username=request.user.username).first()
-        if profile:
-            print(default_storage.url(profile.profile_photo))
-    else:
-        profile = None
+    profile = None
+    if request.user.is_authenticated:
+        profile = request.user
     return render(request, "Home/home.html", {"username": request.user.username, "profile": profile})
 
 
-def workshop(request):
-    workshops = Workshop.objects.all().values()
-    print(workshops)
-    return render(request, "Workshops/workshops.html", {"workshops": workshops})
-
-
-def Home2(request):
-    if request.user.username:
-        profile = Profile.objects.filter(
-            user__username=request.user.username).first()
-    else:
-        profile = None
-    return render(request, "Home/home.html", {"username": request.user.username, "profile": profile})
+# def workshop(request):
+#     workshops = Workshop.objects.all().values()
+#     print(workshops)
+#     return render(request, "Workshops/workshops.html", {"workshops": workshops})
 
 
 def x_logout(request):

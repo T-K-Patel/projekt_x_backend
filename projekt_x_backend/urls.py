@@ -23,13 +23,12 @@ from projekt_x_backend import views
 
 urlpatterns = [
     path('', views.Home,name="Home"),
-    path('2', views.Home2,name="Home2"),
-    path('workshop/', views.workshop),
+    # path('workshop/', views.workshop),
     path('login/', views.x_login,name="Login"),
     path('logout/', views.x_logout,name="Logout"),
     path('admin/', admin.site.urls),
     path('users/', include("Users.urls")),
-    path('workshops/', include("Workshops.urls")),
+    # path('workshops/', include("Workshops.urls")),
     path('database/', include("Database.urls")),
 ]
 

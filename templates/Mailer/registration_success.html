@@ -1,0 +1,38 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Registration Successful</title>
+</head>
+
+<body style="background-color: aqua;
+  color: black;
+  padding: 10px 15px;
+   box-sizing: border-box;
+   margin: 0;">
+    <h4>Dear User,</h4>
+    <p>Your registration on Projekt-X was successful.</p>
+    <p>Here are the profile credentials.</p>
+
+    <div style="font-family: 'Courier New', Courier, monospace;
+    width: max-content;
+    padding: 0.1px 10px;
+    background-color: rgb(214, 255, 255);">
+        <p>
+            <b>Username:</b> {{ username }}
+        </p>
+        <p>
+            <b>OTP:</b> {{ otp }}
+        </p>
+    </div>
+    <p>Verify your profile with OTP to Login.</p>
+    <br />
+    <footer>
+        Regards,<br />
+        The Projekt-X team<br />
+        Have Good Day
+    </footer>
+</body>
+
+</html>

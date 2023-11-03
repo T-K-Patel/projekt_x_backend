@@ -1,23 +1,12 @@
-from datetime import datetime
-from django.core.exceptions import ValidationError
 from django.db.models import *
-from Database.models import Hostel, Club
-from django.contrib.auth.models import User
-from django.utils.translation import gettext_lazy as GTL
-import uuid
+from django.core.exceptions import ValidationError
+from django.contrib.auth.models import AbstractUser, PermissionsMixin
+from .managers import MyUserManager
+
+# Create your models here.
 
 
-def upload_path(instance, filename):
-    ext = filename.split('.')[-1]
-    filename = f'{uuid.uuid4()}.{ext}'
-    return f'Users/Profile/profile_photo/{filename}'
-
-
-def get_superadmim():
-    return User.objects.filter(is_superuser=True).first()
-
-
-def mobile_validator(mobile):
+def validate_mobile(mobile):
     if len((str(mobile))) != 10:
         raise ValidationError("Enter valid mobile number.")
     try:
@@ -27,72 +16,80 @@ def mobile_validator(mobile):
     return mobile
 
 
-def validate_image_size(image):
-    # Define the maximum file size in bytes (e.g., 1 MB)
-    max_size = 1024 * 1024  # 1 MB
+STATE_CHOICES = [
+    ("Andhra Pradesh", "Andhra Pradesh"),
+    ("Arunachal Pradesh", "Arunachal Pradesh"),
+    ("Assam", "Assam"),
+    ("Bihar", "Bihar"),
+    ("Chhattisgarh", "Chhattisgarh"),
+    ("Goa", "Goa"),
+    ("Gujarat", "Gujarat"),
+    ("Haryana", "Haryana"),
+    ("Himachal Pradesh", "Himachal Pradesh"),
+    ("Jharkhand", "Jharkhand"),
+    ("Karnataka", "Karnataka"),
+    ("Kerala", "Kerala"),
+    ("Madhya Pradesh", "Madhya Pradesh"),
+    ("Maharashtra", "Maharashtra"),
+    ("Manipur", "Manipur"),
+    ("Meghalaya", "Meghalaya"),
+    ("Mizoram", "Mizoram"),
+    ("Nagaland", "Nagaland"),
+    ("Odisha", "Odisha"),
+    ("Punjab", "Punjab"),
+    ("Rajasthan", "Rajasthan"),
+    ("Sikkim", "Sikkim"),
+    ("Tamil Nadu", "Tamil Nadu"),
+    ("Telangana", "Telangana"),
+    ("Tripura", "Tripura"),
+    ("Uttarakhand", "Uttarakhand"),
+    ("Uttar Pradesh", "Uttar Pradesh"),
+    ("West Bengal", "West Bengal"),
+    ("Andaman and Nicobar Islands", "Andaman and Nicobar Islands"),
+    ("Chandigarh", "Chandigarh"),
+    ("Dadra and Nagar Haveli and", "Dadra and Nagar Haveli and"),
+    ("Daman & Diu", "Daman & Diu"),
+    ("Delhi", "Delhi"),
+    ("Jammu & Kashmir", "Jammu & Kashmir"),
+    ("Ladakh", "Ladakh"),
+    ("Lakshadweep", "Lakshadweep"),
+    ("Puducherry", "Puducherry")
+]
 
-    if image.size > max_size:
-        raise ValidationError(
-            GTL('The image file size should not exceed 1 MB.'),
-            code='invalid_image_size'
-        )
-    return image
+default_profile = "https://storage.googleapis.com/projekt-x-402611.appspot.com/images/profile/default.jpg"
 
 
-default_profile = "images/profile/default.jpg"
-
-
-class Profile(Model):
-    user = OneToOneField(User, on_delete=CASCADE)
-    name = CharField(max_length=50)
-    email = EmailField(max_length=50, unique=True)
-    mobile = BigIntegerField(validators=[mobile_validator], unique=True)
-    hostel = ForeignKey(Hostel, on_delete=CASCADE)
-    room = CharField(max_length=8)
-    state = CharField(max_length=25)
-    profile_photo = CharField(max_length=100, default=default_profile)
-    # profile_photo = ImageField(upload_to=upload_path, validators=[
-    #    validate_image_size], default='Users/Profile/profile_photo/default.jpg')
-    isRep = BooleanField(default=False)
-    isSecy = BooleanField(default=False)
-    isVerified = BooleanField(default=False)
+class User(AbstractUser, PermissionsMixin):
+    first_name = None
+    last_name = None
+    name = CharField(max_length=100)
+    email = EmailField(max_length=100, unique=True)
+    mobile = CharField(max_length=10, unique=True,
+                       validators=[validate_mobile])
+    dob = DateField(null=True, blank=True)
+    state = CharField(max_length=50, choices=STATE_CHOICES)
+    profile_photo = CharField(max_length=500, default=default_profile)
     otp = CharField(max_length=6, null=True, blank=True)
-    club = ForeignKey(Club, default=None, on_delete=SET_NULL,
-                      null=True, blank=True)
-    attended_events = ManyToManyField(
-        "Workshops.Workshop", related_name="participants", blank=True)
-    points = IntegerField(default=0)
-    registered_by = ForeignKey(
-        "Users.Profile", on_delete=SET_NULL, null=True, blank=True)
-    registered_on = DateTimeField(auto_now_add=True)
+    is_verified = BooleanField(
+        default=False,
+        help_text="Designates weather User is verified.",
+        verbose_name="Verification Status"
+    )
+
+    USERNAME_FIELD = "username"
+    REQUIRED_FIELDS = ['name', 'email', 'mobile', 'state']
+    objects = MyUserManager()
 
     class Meta:
-        constraints = [
-            UniqueConstraint(condition=Q(isSecy=True), fields=[
-                             'club'], name='One Secretory for one club'),
-            UniqueConstraint(condition=Q(isRep=True), fields=[
-                             'hostel', 'club'], name="One Representative of club for one hostel")
+        constraints = [UniqueConstraint(
+            name="Unique email",
+            condition=Q(is_verified=True),
+            fields=['email'],
+            violation_error_message="Cannot verify multiple user with same email.")
         ]
 
-    def entry(self):
-        return self.user.username
-
-    def clean(self):
-        if self.isRep and self.isSecy:
-            raise ValidationError(
-                "Person cannot be Representative and Secretory simultaneously.")
-        if (self.isRep or self.isSecy) and not self.club:
-            raise ValidationError("Specify Club for " +
-                                  ("Secy" if self.isSecy else "Rep"))
-        if self.club and not (self.isRep or self.isSecy):
-            raise ValidationError("Cannot define club for User")
-
-    def save(self, *args, **kwargs):
-        self.clean()
-        super().save(*args, **kwargs)
-
     def __str__(self):
-        return self.user.username
+        return f"{self.username}"
 
 
 class Query(Model):

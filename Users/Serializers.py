@@ -1,69 +1,62 @@
+import datetime
+from django.utils.translation import gettext_lazy as GTL
 import random
 
-from django.contrib.auth.models import User
+from .models import User, Query
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.mail import EmailMessage
-from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
-
-from Database.serializers import ClubSerializer, HostelSerializer
-from Workshops.Serializers import WorkshopSerializer
-from .models import Profile, Query
+from Users.tasks import send_reset_email
 
 
-def send_email(otp):
-    subject = 'OTP to reset PPassword'
-    message = 'OTP to reset your password is:\n' + otp
-    sender_email = 'tk.web.mail.madana@gmail.com'
-    recipient_list = ['johnny.x.mia@gmail.com']
-    email = EmailMessage(subject, message, sender_email, recipient_list)
-    email.send()
+def validate_image_size(image):
+    max_size = 1024 * 1024  # 1 MB
+
+    if image.size > max_size:
+        raise serializers.ValidationError(
+            GTL('The image file size should not exceed 1 MB.'),
+            code='invalid_image_size'
+        )
+    return image
 
 
-def validate_entry(entry):
-    return entry != None and len(entry) == 11 and entry[4:6].isalpha() & entry[:4].isdigit() & entry[6:].isdigit()
+def getTime(time):
+    input_format = "%Y-%m-%d"
+    datetime_obj = datetime.strptime(time, input_format)
+    output_format = "%d/%m/%Y"
+    formatted_date = datetime_obj.strftime(output_format)
+    return formatted_date
 
 
 class ProfileSerializer(serializers.ModelSerializer):
-    attended_events = WorkshopSerializer(many=True)
 
     class Meta:
-        model = Profile
-        fields = ["entry", "hostel", "attended_events", "name", "email",
-                  "mobile", "room", "state", "profile_photo", "isRep", "isSecy", "points"]
-        # exclude = ["otp", "registered_by", "isVerified", "registered_on"]
-        # include = ["entry"]
+        model = User
+        fields = ["username", "dob", "attended_events", "name", "email",
+                  "mobile", "state", "profile_photo"]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        if data["isRep"] or data["isSecy"]:
-            data["club"] = instance.club.name
-        data["hostel"] = instance.hostel.name
         data["profile_photo"] = "https://storage.googleapis.com/projekt-x-402611.appspot.com/" + \
             data.get("profile_photo")
+        data["dob"] = getTime(data["dob"])
         return data
 
 
-class LeaderboardSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Profile
-        fields = ["entry", 'name', "points"]
-
-
 class LoginSerializer(serializers.Serializer):
-    entry = serializers.CharField(max_length=11)
+    username = serializers.CharField(max_length=11)
     password = serializers.CharField(max_length=100, write_only=True)
 
     class Meta:
-        fields = ("entry", "password")
+        fields = ("username", "password")
 
     def validate(self, data):
-        entry = data.get("entry").upper()
+        username = data.get("username").upper()
         password = data.get("password")
 
-        if entry is None:
+        if username is None:
             raise serializers.ValidationError(
                 {"detail": "An username is required to log in."})
 
@@ -71,10 +64,9 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"detail": "A password is required to log in."})
 
-        user = User.objects.filter(username=entry).first()
-        profile = Profile.objects.filter(user__username=entry).first()
+        user = User.objects.filter(username=username).first()
 
-        if user is None or profile is None or not user.is_active or not profile.isVerified:
+        if user is None or not user.is_active or not user.is_verified:
             raise serializers.ValidationError(
                 {"detail": "A user with this username or password is not found."})
 
@@ -83,33 +75,21 @@ class LoginSerializer(serializers.Serializer):
                 {"detail": "A user with this username or password is not found."})
 
         refresh = RefreshToken.for_user(user)
-        data = {
+        return {
             "refresh": str(refresh),
-            "access": str(refresh.access_token),
-            "isRep": profile.isRep,
-            "isSecy": profile.isSecy
+            "access": str(refresh.access_token)
         }
-        return data
 
 
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
-        fields = ("user", "name", "email", "mobile", "hostel", "room", "state", "isRep", "isSecy", "club",
-                  "registered_by")
-        model = Profile
+        fields = ("username", "password", "name",
+                  "email", "mobile", "dob", "state")
+        model = User
+        extra_kwargs = {'password': {'write_only': True}}
 
     def validate(self, data):
-
-        if data.get('isRep') and data.get("registered_by").isRep:
-            raise serializers.ValidationError(
-                {"isRep": "You can't register Rep"}, code=403)
-
-        if data.get('isSecy') and (data.get("registered_by").isRep or data.get("registered_by").isSecy):
-            raise serializers.ValidationError(
-                {"isSecy": "You can't register Secy"}, code=403)
-
-        data['otp'] = "".join([random.choice('0123456789') for _ in range(6)])
-
+        data['otp'] = "".join([str(random.randint(0, 9)) for _ in range(6)])
         return data
 
 
@@ -119,50 +99,9 @@ class ProfilePhotoSerializer(serializers.Serializer):
     class Meta:
         fields = ("profile_photo")
 
-    def validate(self, attrs):
-        return attrs
-
-
-class MassRegisterSerializer(serializers.ModelSerializer):
-    class Meta:
-        fields = ("entry", "name", "email", "mobile", "isVerified",
-                  "hostel", "room", "state", "registered_by")
-        model = Profile
-
     def validate(self, data):
-        entry = data.get("entry")
-        email = data.get("email")
-        mobile = data.get("mobile")
-
-        if Profile.objects.filter(Q(entry=entry) | Q(mobile=mobile) | Q(email=email)).exists():
-            raise serializers.ValidationError(
-                {"detail": "User already registered!"})
-
-        if User.objects.filter(Q(username=entry) | Q(email=email)).exists():
-            raise serializers.ValidationError(
-                {"detail": "User already registered!"})
-
+        validate_image_size(data.get("profile_photo"))
         return data
-
-
-class ForgotPasswordSendSerializer(serializers.Serializer):
-    entry = serializers.CharField()
-
-    class Meta:
-        feilds = ["entry"]
-
-    def validate(self, data):
-        user = get_object_or_404(User, username=data.get("entry"))
-        profile = get_object_or_404(Profile, user=user)
-        if not profile.isVerified:
-            raise serializers.ValidationError(
-                {"detail": "A user with this username is not found."})
-        otp = "".join([str(random.randint(0, 9)) for _ in range(6)])
-        profile.otp = otp
-        profile.save()
-        send_email(otp)
-        token = PasswordResetTokenGenerator().make_token(user)
-        return {"token": token}
 
 
 class ResetPasswordSerializer(serializers.Serializer):
@@ -176,36 +115,31 @@ class ResetPasswordSerializer(serializers.Serializer):
         if not data.get("password"):
             raise serializers.ValidationError(
                 {"password": "This field is required"})
-        if len(data.get("password")) < 6 or len(data.get("password")) > 16:
+        if len(data.get("password")) < 8 or len(data.get("password")) > 16:
             raise serializers.ValidationError(
-                {"password": "password must be 6 to 16 characters long"})
+                {"password": "password must be 8 to 16 characters long"})
         return data
 
 
 class ForgotPasswordVerifySerializer(serializers.Serializer):
     token = serializers.CharField()
-    entry = serializers.CharField()
+    username = serializers.CharField()
     otp = serializers.CharField()
 
     class Meta:
-        feilds = ["entry", "token", "otp"]
+        feilds = ["username", "token", "otp"]
 
     def validate(self, data):
-        print(data)
-        user = get_object_or_404(User, username=data.get("entry"))
-        profile = get_object_or_404(Profile, user=user)
+        user = get_object_or_404(User, username=data.get("username"))
         if PasswordResetTokenGenerator().check_token(user, data.get("token")):
-            if profile.otp == data.get("otp"):
-                profile.otp = ""
-                profile.isVerified = True
-                profile.save()
+            if user.otp == data.get("otp"):
+                user.otp = ""
+                user.is_verified = True
+                user.save()
                 refresh = RefreshToken.for_user(user)
                 data = {
                     "refresh": str(refresh),
-                    "access": str(refresh.access_token),
-                    "isStaff": user.is_staff,
-                    "isRep": profile.isRep,
-                    "isSecy": profile.isSecy
+                    "access": str(refresh.access_token)
                 }
                 return data
             raise serializers.ValidationError({"detail": "Invalid otp"})

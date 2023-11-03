@@ -1,35 +1,37 @@
+import datetime
+
+import pyshorteners
+from django.utils import timezone
+import uuid
 import jwt
-# import requests
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
-# from django.forms.models import model_to_dict
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
-# from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView as TRV
+from Database.models import Hostel
 from Users.tasks import upload_profile
-# from rest_framework_simplejwt.exceptions import TokenError
-from Workshops.models import Workshop
+from django.db.models import Q
 from .Serializers import *
-from .permissions import *
-# from django.urls import reverse
-# from django.middleware.csrf import get_token
+from .permissions import (IsCaptchaVerified, IsStaff, IsSuperuser)
 from projekt_x_backend import settings
+import json
+import random
+import time
+
+from django.forms import ValidationError
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.contrib.auth.password_validation import validate_password
+
+from .encryptions import decrypt, encrypt
+from .models import User
+from .tasks import send_reset_email, send_reg_email
 
 
 # Create your views here.
-
-
-def send_email(entry, otp, email="johnny.x.mia@gmail.com"):
-    subject = 'Registration Successful.'
-    message = 'Dear User,\n     Your registration on Projekt-X was successful.\n\nHere are the profile credentials.\n\nUsername: ' + \
-              entry + "\nOtp: " + otp + \
-        "\n\nVerify your profile with otp to login.\n\nRegards,\nProjekt-X Team."
-    sender_email = 'tk.web.mail.madana@gmail.com'
-    recipient_list = [email]
-    email = EmailMessage(subject, message, sender_email, recipient_list)
-    email.send()
-
 
 def RandomPass(n=16):
     chars = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM78945612307894561230"
@@ -52,7 +54,7 @@ class ValidateToken(APIView):
 
     def post(self, request):
         user = request.user
-        if user.is_active:
+        if user.is_active and user.is_verified:
             return Response("Valid Token")
         return Response("Invalid Token", status=401)
 
@@ -66,69 +68,53 @@ class TokenRefreshView(TRV):
         user_id = payload['user_id']
         user = User.objects.filter(id=user_id).first()
         if user and user.is_active:
-            profile = Profile.objects.filter(user=user).first()
-            if profile:
-                return resp
-            else:
-                return Response({"detail": "User Profile not found."}, status=404)
+            if not user.is_verified:
+                return Response({"detail": "User not found."}, status=404)
+            return resp
         return Response({"detail": "Your account has been deleted or is inactive."}, status=404)
 
 
 class RegisterView(APIView):
-    permission_classes = [IsCaptchaVerified]
+    # permission_classes = [IsCaptchaVerified]
 
     def post(self, request):
         data = request.data
-        entry = data.get("entry")
+        username = data.get("username")
         email = data.get("email")
 
-        if not validate_entry(entry):
-            return Response({"entry": ["Enter a valid Username."]}, status=400)
-
-        if not email:
-            email = (entry[4:7]+entry[2:4]+entry[7:]+"@iitd.ac.in")
-
-        if entry:
-            entry = entry.upper()
-            data["entry"] = entry
+        if username:
+            username = username.upper()
+            data["username"] = username
 
         data["email"] = email.lower()
-        data["room"] = "".join([random.choice(
-            "qwertyuiopasdfghjklzxcvbnm1234567890ASDFGHJKLQWERTYUIOPZXCVBNM") for _ in range(8)])
-
-        hostel = Hostel.objects.filter(name="Nilgiri").first()
-        if hostel:
-            data["hostel"] = hostel.pk
-        # elif data.get("hostel"):
-        #     return Response({"hostel": ["Enter a valid hostel name."]}, status=400)
-
-        staff = False
-        if data.get('isSecy') or data.get('isRep'):
-            staff = True
-        if not data.get("password"):
-            return Response({"detail": "Password is required"}, status=400)
-        if len(data.get("password")) < 8:
-            return Response({"detail": "Password must be atleast 8 characters long."}, status=400)
-        if len(data.get("password")) > 16:
-            return Response({"detail": "Password must not be more than 16 characters long."}, status=400)
-
         password = data.get("password")
 
-        if User.objects.filter(username=entry).exists():
-            return Response({"detail": "User alresdy Registered"}, status=400)
+        if not password:
+            return Response({"detail": "Password is required"}, status=400)
+        if len(password) < 8:
+            return Response({"detail": "Password must be atleast 8 characters long."}, status=400)
+        if len(password) > 16:
+            return Response({"detail": "Password must not be more than 16 characters long."}, status=400)
 
-        user = User.objects.create_user(
-            entry, email, password, is_staff=staff)
+        user = User.objects.filter(Q(username=username) | Q(
+            email=email) | Q(mobile=request.data.get("mobile"))).first()
 
-        data['user'] = user.pk
+        if user:
+            if not user.is_verified:
+                if (timezone.now()-user.date_joined).total_seconds() < 600:
+                    return Response({"detail": "Wait for 10 minutes before retrying."}, status=400)
+                user.delete()
+            else:
+                return Response({"detail": "User with given username, email or mobile already exists."})
+
         serializer = RegisterSerializer(data=data)
         if serializer.is_valid():
-            serializer.save()
+            user = serializer.save()
             token = PasswordResetTokenGenerator().make_token(user)
-            send_email(entry, serializer.validated_data["otp"], data["email"])
-            return Response({"entry": entry, "token": token})
+            send_reg_email(
+                {"otp": serializer.validated_data["otp"], "username": username}, data["email"])
+            return Response({"username": username, "token": token})
         else:
-            user.delete()
             return Response({"detail": serializer.errors}, status=400)
 
 
@@ -136,7 +122,7 @@ class RegisterVerifyView(APIView):
     def post(self, request):
         data = request.data
         print(data)
-        if not (data["entry"] and data["token"]):
+        if not (data.get("username") and data.get("token")):
             return Response({"detail": "Invalid data"}, status=400)
         serializer = ForgotPasswordVerifySerializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -152,27 +138,14 @@ class LoginView(APIView):
         return Response(serializer.validated_data)
 
 
-class Reset(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        user = request.user
-        new_password = request.data.get('password')
-
-        user.set_password(new_password)
-        user.save()
-        return Response({'message': 'Password changed successfully'})
-
-
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        user = get_object_or_404(Profile, user=request.user)
-        if not user.isVerified:
+        user = get_object_or_404(User, username=request.user.username)
+        if not user.is_verified:
             return Response({"detail": "Profile is not verified."}, status=403)
-        serializer = ProfileSerializer(
-            user, context={'host_url': request.build_absolute_uri('/')})
+        serializer = ProfileSerializer(user)
         data = serializer.data
 
         return Response(data)
@@ -183,7 +156,7 @@ class UpdateProfilePhoto(APIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def post(self, request):
-        user = get_object_or_404(Profile, user=request.user)
+        user = get_object_or_404(User, username=request.user.username)
         try:
             file = f"images/profile/{user.user.username}-{str(uuid.uuid4())}.{request.data.get('profile_photo').name.split('.')[1]}"
         except:
@@ -193,12 +166,11 @@ class UpdateProfilePhoto(APIView):
 
         if serializer.is_valid():
             profile_photo = serializer.validated_data['profile_photo']
-
             try:
                 to_delete = None
                 if not user.profile_photo == "images/profile/default.jpg":
                     to_delete = user.profile_photo
-                upload_profile(profile_photo, file, to_delete)
+                file = upload_profile(profile_photo, file, to_delete)
                 user.profile_photo = file
                 user.save()
             except:
@@ -209,131 +181,75 @@ class UpdateProfilePhoto(APIView):
             return Response(serializer.errors, status=400)
 
 
-class LeaderboardView(APIView):
-    # permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        data = Profile.objects.all().order_by("-points")
-        serializer = LeaderboardSerializer(data, many=True)
-        data = serializer.data
-        r = min(len(data), 20)
-        data = data[:r]
-        for i in range(r):
-            data[i]["rank"] = i+1
-        return Response(data)
-
-
-def fetch_Attended_Events(entry):
-    profile = get_object_or_404(Profile, user__username=entry)
-    events = profile.attended_events
-    if events:
-        events = events.split("|")
-        events = list(map(int, events))
-        print(events)
-        events.sort()
-    return events
-
-
-class AddAttendedEvents(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        entry = request.user.username
-        ids = fetch_Attended_Events(entry)
-        events = []
-        if ids:
-            for i in ids:
-                title = Workshop.objects.get(id=i).title
-                events.append({"id": i, "title": title})
-        return Response({"attended_events": events})
-
-    def post(self, request):
-        entry = request.user.username
-        event = request.data.get("add_event")
-        if event:
-            temp = Workshop.objects.filter(id=event).first()
-            if not temp:
-                return Response({"detail": "Event Not found."}, status=404)
-            events = fetch_Attended_Events(entry)
-            if int(event) in events:
-                return Response({"detail": "Event already exist"}, status=400)
-            events.append(int(event))
-            events = list(set(events))
-            events.sort()
-            events = map(str, events)
-            profile = get_object_or_404(Profile, entry=entry)
-            profile.attended_events = "|".join(events)
-            profile.save()
-            return Response({"detail": "Event added successfully"})
-        else:
-            return Response({"add_event": "This field is required"}, status=400)
-
-
-class MassRegisterUsers(APIView):
-    permission_classes = [IsAuthenticated, IsBSWRep]
-
-    def post(self, request):
-        data = request.data
-        creator = get_object_or_404(Profile, user=request.user)
-        print(request)
-        if type(data.get("users")) == list:
-            cant_reg = []
-            for entry in data.get("users"):
-                entry["hostel"] = creator.hostel.pk
-                entry["isVerified"] = True
-                entry["registered_by"] = creator
-                serializer = MassRegisterSerializer(data=entry)
-                if serializer.is_valid():
-                    username = serializer.validated_data.get("entry")
-                    email = serializer.validated_data.get("email")
-                    password = RandomPass()
-                    user = User.objects.create_user(
-                        username, email, password)
-                    if user:
-                        send_email(entry=username, password=password)
-                        serializer.save()
-                    else:
-                        cant_reg.append({"entry": entry.get('entry'), "error": {
-                            "detail": "User is Superuser"}})
-                else:
-                    cant_reg.append(
-                        {"entry": entry.get('entry'), "error": serializer.errors})
-            if cant_reg:
-                return Response(
-                    {"detail": f"Can't register {len(cant_reg)} of {len(data.get('users'))} users",
-                     "users": cant_reg},
-                    status=400)
-            return Response({"detail": "Registered Successfully"})
-        return Response({"detail": "Users should be in list"}, status=400)
-
-
-class ResetPasswordView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        serializer = ResetPasswordSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = User.objects.get(username=request.user.username)
-        print(serializer.validated_data.get("password"))
-        user.set_password(serializer.validated_data.get("password"))
-        user.save()
-        return Response({"detail": "Password Reset Successful."})
-
-
 class ForgotPasswordSendView(APIView):
     def post(self, request):
-        data = request.data
-        serializer = ForgotPasswordSendSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data)
+        username = request.data.get("username")
+        email = request.data.get("email")
+        user = User.objects.filter(
+            Q(username__icontains=username) | Q(email=email)).first()
+        if not (username or email):
+            return Response({"detail": "Username or Email Required to reset password"}, status=400)
+        if not user:
+            return Response({"detail": "User with given username or email not found"}, status=404)
+
+        otp = "".join([str(random.randint(0, 9)) for _ in range(6)])
+
+        data = {'user': user.username or 1, "exp_time": int(
+            time.time()+600), "otp": otp}
+
+        enc_data = encrypt(json.dumps(data))
+        user.otp = otp
+        user.save()
+        
+        s = pyshorteners.Shortener()
+        original_url = f"{request.build_absolute_uri('/')}users/reset_password/{enc_data}"
+        short_url = s.tinyurl.short(original_url)
+        
+        context = {'username': user.name,
+                   "url": short_url}
+
+        if user.email:
+            success = send_reset_email(context, user.email)
+        else:
+            success = send_reset_email(context)
+        if success:
+            return Response("Email Sent to registered email.")
+        return Response("Error sending mail. try again afteer some time", status=400)
 
 
-class ForgotPasswordVerifyView(APIView):
-    def post(self, request):
-        data = request.data
-        serializer = ForgotPasswordVerifySerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data)
+def reset_password_page(request, enc_data):
+    try:
+        details = decrypt(enc_data)
+        details_dict = json.loads(details)
+        exp_time = details_dict["exp_time"]
+        username = details_dict["user"]
+        otp = details_dict["otp"]
+    except:
+        return HttpResponse("<h1 style='text-align:center; margin-top: 20px;'>Invalid Link.</h1>")
+
+    user = None
+    if username:
+        user = User.objects.filter(username=username).first()
+
+    if exp_time <= time.time() or (user is None) or (not user.otp) or (user.otp != otp):
+        return HttpResponse("<h1 style='text-align:center; margin-top: 20px;'>Link has Expired.</h1>")
+
+    if request.method == "POST":
+        p1 = request.POST.get('password')
+        p2 = request.POST.get('password2')
+        if p1 != p2:
+            return render(request, "reset_password.html", {'user': user, 'error': "Password does not match.", "passwords": {"first": p1, "second": p2}}, status=400)
+        try:
+            validate_password(p1)
+        except ValidationError as error:
+            return render(request, "reset_password.html", {'user': user, 'error': error, "passwords":  {"first": p1, "second": p2}}, status=400)
+
+        user.set_password(p1)
+        user.otp = ""
+        user.save()
+        return HttpResponse("<h1 style='text-align:center; margin-top: 20px;'>Password Reset Successful.</h1>")
+
+    return render(request, "reset_password.html", {'user': user.username})
 
 
 class QueryView(APIView):
@@ -352,3 +268,7 @@ class QueryView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"detail": "Query added successfully"})
+
+
+def csrf_failure_view(request, reason="CSRF Failure", template_name="Errors/custom_csrf_failure.html"):
+    return render(request, template_name, {'reason': reason})

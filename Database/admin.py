@@ -3,7 +3,7 @@ from .models import *
 
 # Register your models here.
 class ClubAdmin(admin.ModelAdmin):
-	list_display = ("name", 'board',"completed_workshops","upcoming_workshops")
+	list_display = ("name", 'board')
 	search_fields = ('id', "name", 'board')
 
 
