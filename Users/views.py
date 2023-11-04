@@ -105,11 +105,12 @@ class RegisterView(APIView):
                     return Response({"detail": "Wait for 10 minutes before retrying."}, status=400)
                 user.delete()
             else:
-                return Response({"detail": "User with given username, email or mobile already exists."},status=400)
+                return Response({"detail": "User with given username, email or mobile already exists."}, status=400)
 
         serializer = RegisterSerializer(data=data)
         if serializer.is_valid():
             user = serializer.save()
+            user.set_password(password)
             token = PasswordResetTokenGenerator().make_token(user)
             send_reg_email(
                 {"otp": serializer.validated_data["otp"], "username": username}, data["email"])
