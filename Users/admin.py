@@ -37,6 +37,7 @@ class MyUserAdmin(UserAdmin):
     readonly_fields = ['username', 'last_login', 'date_joined', 'profile_photo', "is_verified",
                        "is_superuser", 'is_staff', 'groups', "otp", 'user_permissions']
     filter_horizontal = ['groups', 'user_permissions']
+    ordering = ("-id",)
 
     add_fieldsets = (
         (None, {'fields': ('username',)}),
@@ -74,6 +75,7 @@ class MyUserAdmin(UserAdmin):
 class QueryAdmin(admin.ModelAdmin):
     list_display = ('user', "subject", "message", "date_created")
     search_fields = ('user__username', "subject", "message")
+    ordering = ("-id",)
 
 
 admin.site.register(User, MyUserAdmin)
