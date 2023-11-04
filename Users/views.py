@@ -111,6 +111,7 @@ class RegisterView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             user.set_password(password)
+            user.save()
             token = PasswordResetTokenGenerator().make_token(user)
             send_reg_email(
                 {"otp": serializer.validated_data["otp"], "username": username}, data["email"])
@@ -191,7 +192,7 @@ class ForgotPasswordSendView(APIView):
         username = request.data.get("username")
         email = request.data.get("email")
         user = User.objects.filter(
-            Q(username__icontains=username) | Q(email=email)).first()
+            Q(username=username) | Q(email=email)).first()
         if not (username or email):
             return Response({"detail": "Username or Email Required to reset password"}, status=400)
         if not user:
@@ -219,7 +220,7 @@ class ForgotPasswordSendView(APIView):
             success = send_reset_email(context)
         if success:
             return Response("Email Sent to registered email.")
-        return Response("Error sending mail. try again afteer some time", status=400)
+        return Response({"detail":"Error sending mail. try again afteer some time"}, status=400)
 
 
 def reset_password_page(request, enc_data):
