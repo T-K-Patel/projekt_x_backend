@@ -10,7 +10,7 @@
   }
 </style>
 <nav class="position-absolute navBar">
-  {% if username %}
+  {% if request.user.is_authenticated %}
     <button class="btn btn-primary" onclick="redirect('logout/')">Logout</button>
   {% else %}
     <button class="btn btn-primary" onclick="redirect('login/')">Login</button>
