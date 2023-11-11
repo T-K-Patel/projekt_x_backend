@@ -14,20 +14,12 @@ firebase_admin.initialize_app(cred, {
 bucket = storage.bucket()
 
 
-def upload_profile(profile_photo, filename, to_delete=None):
+def upload_profile(profile_photo, filename):
     blob = bucket.blob(filename)
     blob.content_type = "image/" + filename.split(".")[-1]
     blob.upload_from_file(profile_photo)
     blob.make_public()
     url = blob.public_url
-    if to_delete:
-        try:
-            blob = bucket.blob(to_delete)
-            blob.delete()
-        except:
-            print("Delete Error for " + to_delete)
-
-    print("Public URL", url)
     return url
 
 

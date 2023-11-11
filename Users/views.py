@@ -182,25 +182,16 @@ class UpdateProfilePhoto(APIView):
     def post(self, request):
         user = get_object_or_404(User, username=request.user.username)
         try:
-            file = f"Users/profile_photo/{user.username.lower()}/{str(uuid.uuid4())}.{request.data.get('profile_photo').name.split('.')[-1]}"
+            image_file = f"Users/profile_photo/{user.username.lower()}/{str(uuid.uuid4())}.{request.data.get('profile_photo').name.split('.')[-1]}"
         except:
-            file = f"Users/profile_photo/{user.username.lower()}/{str(uuid.uuid4())}.jpg"
+            image_file = f"Users/profile_photo/{user.username.lower()}/{str(uuid.uuid4())}.jpg"
 
         serializer = ProfilePhotoSerializer(data=request.data)
 
         if serializer.is_valid():
             profile_photo = serializer.validated_data["profile_photo"]
             try:
-                to_delete = None
-                if not user.profile_photo.endswith("Users/profile_photo/default.jpg"):
-                    to_delete = user.profile_photo.replace(
-                        "https://storage.googleapis.com/projekt-x-402611.appspot.com/",
-                        "",
-                    )
-                print("URL before upload", file)
-                print("Profile before upload", profile_photo)
-                url = upload_profile(profile_photo, file, to_delete)
-                print("URL after upload", url)
+                url = upload_profile(profile_photo, image_file)
                 user.profile_photo = url
                 user.save()
             except:
