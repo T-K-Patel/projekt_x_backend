@@ -9,5 +9,5 @@ __pycache__/
 media/
 test.*
 list*.csv
-migrations/
-*.csv
+Test.py
+.history/

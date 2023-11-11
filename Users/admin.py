@@ -27,7 +27,7 @@ ST_FIELDS_SETS = (
 
 
 class MyUserAdmin(UserAdmin):
-    list_display = ['id', 'username', 'name', 'email',
+    list_display = ['username', 'name', 'email',
                     'mobile', 'is_staff', 'is_verified']
     search_fields = ['id', 'username', 'name',
                      'email', 'mobile', 'state', 'is_staff', 'is_verified']
@@ -37,7 +37,7 @@ class MyUserAdmin(UserAdmin):
     readonly_fields = ['username', 'last_login', 'date_joined', 'profile_photo', "is_verified",
                        "is_superuser", 'is_staff', 'groups', "otp", 'user_permissions']
     filter_horizontal = ['groups', 'user_permissions']
-    ordering = ("-id",)
+    ordering = ("-date_joined",)
 
     add_fieldsets = (
         (None, {'fields': ('username',)}),

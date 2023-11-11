@@ -1,0 +1,29 @@
+<!-- create_superadmin.html -->
+{% extends 'base.html' %} 
+{% load static %} 
+
+{% block title %}
+<link rel="stylesheet" href={% static 'css/Superadmin_creation.css' %}>
+<title>Create SuperUser</title>
+{% endblock title %}
+
+{% block content %}
+<div class="pt-5">
+	<h2 class="">Verify Superadmin</h2>
+	<form method="post" action="" class="mb-5">
+		{% csrf_token %}
+		<div class="secret-key-container py-0 px-3">
+			<div class="form-group d-flex flex-column my-2 py-0" style="width: 100%">
+				<input type="password" name="creation_key" autocomplete="off" required="true" id="secret_key"
+					placeholder="Superuser Creation Key" />
+				{% if creation_key_errors %}
+				<div class="text-danger mytext">{{creation_key_errors}}</div>
+				{% endif %}
+			</div>
+		</div>
+		<button type="submit" class="btn btn-primary my-3">
+			Create Superadmin
+		</button>
+	</form>
+</div>
+{% endblock %}

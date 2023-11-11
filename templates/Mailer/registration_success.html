@@ -6,29 +6,29 @@
   </head>
 
   <body>
-    <div style="background-color: aqua;
+    <div style="background-color: rgb(0, 255, 255);
             color: black;
             padding: 10px 15px;
             box-sizing: border-box;
             margin: 0;">
-      <h4>Dear User,</h4>
-      <p>Your registration on Projekt-X was successful.</p>
-      <p>Here are the profile credentials.</p>
+      <h4 style="color: rgb(0,0,0);">Dear {{name}},</h4>
+      <p style="color: rgb(0,0,0);">Your registration on Projekt-X was successful.</p>
+      <p style="color: rgb(0,0,0);">Here are the profile credentials.</p>
 
       <div style="font-family: 'Courier New', Courier, monospace;
             width: max-content;
             padding: 0.1px 10px;
             background-color: rgb(214, 255, 255);">
-        <p>
-          <b>Username:</b> {{ username }}
+        <p style="color: rgb(0,0,0);">
+          <b style="color: rgb(0,0,0);">Username:</b> {{ username }}
         </p>
-        <p>
-          <b>OTP:</b> {{ otp }}
+        <p style="color: rgb(0,0,0);">
+          <b style="color: rgb(0,0,0);">OTP:</b> {{ otp }}
         </p>
       </div>
-      <p>Verify your profile with OTP to Login.</p>
+      <p style="color: rgb(0,0,0);">Verify your profile with OTP to Login.</p>
       <br />
-      <footer>
+      <footer style="color: rgb(0,0,0);">
         Regards,<br />
         The Projekt-X team<br />
         Have Good Day

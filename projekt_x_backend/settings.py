@@ -8,7 +8,13 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ['SECRET_KEY']
 
-DEBUG = False
+try:
+    os.environ["DEBUG"]
+    DEBUG = True
+except:
+    DEBUG = False
+
+
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "now.sh", ".vercel.app"]
 
 
@@ -19,15 +25,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     # Third-Party Aps
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+
     # Custom Apps
     'Users',
-    # 'Workshops',
-    'Database',
 ]
+
 AUTH_USER_MODEL = "Users.User"
 
 
@@ -91,10 +98,12 @@ if DEBUG:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 else:
     DATABASES = {
         'default': {
-            'ENGINE': os.environ["DATABASE_ENGINE"],
+            'ENGINE': "django.db.backends.postgresql",
             'NAME': os.environ["DATABASE_NAME"],
             'USER': os.environ["DATABASE_USER"],
             'PASSWORD': os.environ["DATABASE_PASSWORD"],
@@ -103,6 +112,14 @@ else:
             'OPTIONS': {'sslmode': 'require'},
         }
     }
+
+
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = os.environ["EMAIL_HOST"]
+    EMAIL_PORT = os.environ["EMAIL_PORT"]
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = os.environ["EMAIL_HOST_USER"]
+    EMAIL_HOST_PASSWORD = os.environ["EMAIL_HOST_PASSWORD"]
 
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -122,16 +139,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
-
-if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
-    EMAIL_BACKEND = os.environ["EMAIL_BACKEND"]
-    EMAIL_HOST = os.environ["EMAIL_HOST"]
-    EMAIL_PORT = os.environ["EMAIL_PORT"]
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = os.environ["EMAIL_HOST_USER"]
-    EMAIL_HOST_PASSWORD = os.environ["EMAIL_HOST_PASSWORD"]
 
 LANGUAGE_CODE = 'en-us'
 
@@ -167,5 +174,3 @@ FIREBASE_CONFIG = {
 }
 
 CSRF_FAILURE_VIEW = 'Users.views.csrf_failure_view'
-
-ERROR_404_TEMPLATE_NAME = 'Errors/404.html'

@@ -1,0 +1,32 @@
+<!-- create_superadmin.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+<link rel="stylesheet" href={% static 'css/Superadmin_creation.css'%}>
+<title>Create SuperUser</title>
+{% endblock title %}
+
+{% block content %}
+<h2>Create Superadmin</h2>
+<form method="post" action="" class="mb-5">
+  {% csrf_token %} 
+  <div class="form-container py-3 px-3">
+    {% for field in form %}
+    <div
+      class="form-group d-flex flex-column my-2 py-0"
+      style="width: min-content"
+    >
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}
+      <div class="text-danger">
+        {% for error in field.errors %} {{ error }} {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <button type="submit" class="btn btn-primary my-3">Create Superadmin</button>
+</form>
+{% endblock %}
