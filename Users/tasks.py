@@ -14,12 +14,19 @@ firebase_admin.initialize_app(cred, {
 bucket = storage.bucket()
 
 
-def upload_profile(profile_photo, filename):
+def upload_profile(profile_photo, filename,prev=None):
+    type = profile_photo.content_type
     blob = bucket.blob(filename)
-    blob.content_type = "image/" + filename.split(".")[-1]
+    blob.content_type = type
     blob.upload_from_file(profile_photo)
     blob.make_public()
     url = blob.public_url
+    if prev:
+        try:
+            blob = bucket.blob(prev)
+            blob.make_private()
+        except:
+            print(f"Error making {prev} privete")
     return url
 
 

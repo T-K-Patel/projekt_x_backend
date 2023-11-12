@@ -181,23 +181,23 @@ class UpdateProfilePhoto(APIView):
 
     def post(self, request):
         user = get_object_or_404(User, username=request.user.username)
-        try:
-            image_file = f"Users/profile_photo/{user.username.lower()}/{str(uuid.uuid4())}.{request.data.get('profile_photo').name.split('.')[-1]}"
-        except:
-            image_file = f"Users/profile_photo/{user.username.lower()}/{str(uuid.uuid4())}.jpg"
+        image_file = f"Users/profile_photo/{user.username.lower()}/{str(uuid.uuid4())}"
 
         serializer = ProfilePhotoSerializer(data=request.data)
 
         if serializer.is_valid():
             profile_photo = serializer.validated_data["profile_photo"]
             try:
-                url = upload_profile(profile_photo, image_file)
+                prev = "Users"+user.profile_photo.split("Users")[-1]
+                if prev.endswith("default.svg"):
+                    prev = None
+                url = upload_profile(profile_photo, image_file,prev)
                 user.profile_photo = url
                 user.save()
             except:
                 return Response({"detail": "Error uploading profile photo"}, status=400)
 
-            return Response("Profile photo updated successfully.")
+            return Response({"profile_photo":url})
         else:
             return Response(serializer.errors, status=400)
 
