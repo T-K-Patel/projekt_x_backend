@@ -53,4 +53,4 @@ def page_not_found(request, exception):
                         "<a href='/'><button style='padding:5px; background-color:lightgrey;'>Go to Home</button></a>"
                         "</center>"
                         "</body>"
-                        "</html>")
+                        "</html>",status=404)

@@ -5,6 +5,11 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from projekt_x_backend.settings import FIREBASE_CONFIG
+try:
+    from projekt_x_backend.settings import EMAIL_HOST_USER
+except:
+    EMAIL_HOST_USER = "noreply.projekt.x.team@gmail.com"
+    
 
 
 cred = credentials.Certificate(FIREBASE_CONFIG)
@@ -36,11 +41,11 @@ def send_reset_email(context, email="johnny.x.mia@gmail.com"):
     text_content = strip_tags(html_content)
     return send_mail(
         subject="Reset Password link for Projekt-X Account",
-        from_email="Projekt-X Team <tk.web.mail.madana@gmail.com>",
+        from_email=f"Projekt-X Team <{EMAIL_HOST_USER}>",
         message=text_content,
         recipient_list=[email],
         html_message=html_content,
-        fail_silently=True
+        # fail_silently=True
     )
 
 
@@ -50,9 +55,9 @@ def send_reg_email(context, email="johnny.x.mia@gmail.com"):
     text_content = strip_tags(html_content)
     return send_mail(
         subject="Registration Successful on Projekt-X",
-        from_email="Projekt-X Team <tk.web.mail.madana@gmail.com>",
+        from_email=f"Projekt-X Team <{EMAIL_HOST_USER}>",
         message=text_content,
         recipient_list=[email],
         html_message=html_content,
-        fail_silently=True
+        # fail_silently=True
     )
