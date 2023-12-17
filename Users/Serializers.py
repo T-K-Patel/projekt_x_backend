@@ -12,7 +12,7 @@ from Users.tasks import send_reset_email
 
 
 def validate_image_size(image):
-    max_size = 1024 * 1024 * 5  # 5 MB
+    max_size = 1024 * 1024 * 3  # 3 MB
 
     if image.size > max_size:
         raise serializers.ValidationError(
