@@ -31,7 +31,7 @@ def upload_profile(profile_photo, filename,prev=None):
             blob = bucket.blob(prev)
             blob.make_private()
         except:
-            print(f"Error making {prev} privete")
+            print(f"Error making {prev} private")
     return url
 
 
