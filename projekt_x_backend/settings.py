@@ -158,9 +158,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-DATA_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024 * 6
-
 ENCRYPT_KEY = os.environ["ENCRYPT_KEY"]
 
 FIREBASE_CONFIG = {
